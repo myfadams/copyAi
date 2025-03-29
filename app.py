@@ -1,6 +1,3 @@
-
-
-
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from transformers import pipeline
@@ -8,14 +5,12 @@ import os
 import requests
 
 app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": "*"}})  # Allow all
-# CORS(app)
+CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)  # Ensure CORS applies to all requests
 
 # ✅ Model storage setup
 MODEL_DIR = "./gpt2-business/trained"
 MODEL_FILE = f"{MODEL_DIR}/model.safetensors"
 MODEL_URL = "https://huggingface.co/LadlMe/gpt2-business/resolve/main/model.safetensors"
-
 
 # ✅ Download model if not found
 if not os.path.exists(MODEL_FILE):
@@ -47,6 +42,15 @@ def getResults(text):
 
     return output
 
+# ✅ Handle CORS preflight requests
+@app.route("/predict", methods=["OPTIONS"])
+def handle_options():
+    response = jsonify({"message": "CORS preflight passed"})
+    response.headers.add("Access-Control-Allow-Origin", "*")
+    response.headers.add("Access-Control-Allow-Methods", "POST, OPTIONS")
+    response.headers.add("Access-Control-Allow-Headers", "Content-Type")
+    return response
+
 @app.route("/predict", methods=["POST"])
 def predict():
     """Handles API requests for text generation"""
@@ -57,7 +61,11 @@ def predict():
 
     text = data["text"]
     results = {"text": getResults(text)[0]["generated_text"].replace(text, "", 1), "sender": "bot"}
-    return jsonify(results)
+    
+    response = jsonify(results)
+    response.headers.add("Access-Control-Allow-Origin", "*")  # Explicitly allow frontend
+
+    return response
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=True)
