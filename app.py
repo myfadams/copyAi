@@ -8,7 +8,8 @@ import os
 import requests
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={r"/*": {"origins": "*"}})  # Allow all
+# CORS(app)
 
 # ✅ Model storage setup
 MODEL_DIR = "./gpt2-business/trained"
