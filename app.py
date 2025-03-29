@@ -2,30 +2,15 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from transformers import pipeline
 import os
-import requests
 
 app = Flask(__name__)
 
 # ✅ Properly configure CORS
 CORS(app, resources={r"/predict": {"origins": "*"}}, supports_credentials=True)
 
-# ✅ Model storage setup
-MODEL_DIR = "./gpt2-business/trained"
-MODEL_FILE = f"{MODEL_DIR}/model.safetensors"
-MODEL_URL = "https://huggingface.co/LadlMe/gpt2-business/resolve/main/model.safetensors"
-
-# ✅ Download model if not found
-if not os.path.exists(MODEL_FILE):
-    print("Downloading model...")
-    os.makedirs(MODEL_DIR, exist_ok=True)
-    response = requests.get(MODEL_URL, stream=True)
-    with open(MODEL_FILE, "wb") as file:
-        for chunk in response.iter_content(chunk_size=8192):
-            file.write(chunk)
-    print("Model downloaded!")
-
-# ✅ Load the model
-generator = pipeline("text-generation", model=MODEL_DIR, framework="pt")
+# ✅ Load the model directly from Hugging Face
+MODEL_NAME = "LadlMe/gpt2-business"
+generator = pipeline("text-generation", model=MODEL_NAME, framework="pt")
 
 def getResults(text):
     """Generates text using GPT-2 model"""
