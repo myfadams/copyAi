@@ -5,7 +5,9 @@ import os
 import requests
 
 app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)  # Ensure CORS applies to all requests
+
+# ✅ Properly configure CORS
+CORS(app, resources={r"/predict": {"origins": "*"}}, supports_credentials=True)
 
 # ✅ Model storage setup
 MODEL_DIR = "./gpt2-business/trained"
@@ -39,21 +41,20 @@ def getResults(text):
         do_sample=True,
         num_return_sequences=2
     )
-
     return output
 
-# ✅ Handle CORS preflight requests
-@app.route("/predict", methods=["OPTIONS"])
-def handle_options():
-    response = jsonify({"message": "CORS preflight passed"})
-    response.headers.add("Access-Control-Allow-Origin", "*")
-    response.headers.add("Access-Control-Allow-Methods", "POST, OPTIONS")
-    response.headers.add("Access-Control-Allow-Headers", "Content-Type")
-    return response
-
-@app.route("/predict", methods=["POST"])
+@app.route("/predict", methods=["POST", "OPTIONS"])
 def predict():
     """Handles API requests for text generation"""
+    
+    # ✅ Handle preflight (OPTIONS) requests
+    if request.method == "OPTIONS":
+        response = jsonify({"message": "CORS preflight successful"})
+        response.headers.add("Access-Control-Allow-Origin", "*")
+        response.headers.add("Access-Control-Allow-Methods", "POST, OPTIONS")
+        response.headers.add("Access-Control-Allow-Headers", "Content-Type")
+        return response, 200
+    
     data = request.get_json()
     
     if "text" not in data:
@@ -61,10 +62,10 @@ def predict():
 
     text = data["text"]
     results = {"text": getResults(text)[0]["generated_text"].replace(text, "", 1), "sender": "bot"}
-    
-    response = jsonify(results)
-    response.headers.add("Access-Control-Allow-Origin", "*")  # Explicitly allow frontend
 
+    # ✅ Add CORS headers to the response
+    response = jsonify(results)
+    response.headers.add("Access-Control-Allow-Origin", "*")
     return response
 
 if __name__ == "__main__":
